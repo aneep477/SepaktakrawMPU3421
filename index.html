@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Pemarkahan MPU3421</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #0f766e;
+            --primary-hover: #115e59;
+            --secondary: #9f1239;
+            --bg-body: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-alt: #f1f5f9;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        body { user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg-body); min-height: 100vh; color: var(--text-main); }
+        .font-serif-title { font-family: 'Lora', serif; }
+        .font-mono-score { font-family: 'Space Mono', monospace; }
+        .shell { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem; }
+        .academic-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 1rem; box-shadow: var(--shadow-sm); }
+
+        .btn-primary { background: var(--primary); border: 1px solid var(--primary); cursor: pointer; transition: all 0.2s ease-in-out; color: white; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; box-shadow: var(--shadow-sm); }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn-primary:disabled { background: #94a3b8; border-color: #94a3b8; cursor: not-allowed; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: #f8fafc; }
+
+        .s-card { padding: 12px 14px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 0.75rem; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; border-left: 4px solid transparent; }
+        .s-card:hover { background: var(--bg-alt); border-left-color: #94a3b8; }
+        .s-card.selected { background: #f0fdfa; border-left-color: var(--primary); border-color: #99f6e4; }
+        .s-card.done { border-left-color: #10b981; }
+
+        .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+        .scroll-thin::-webkit-scrollbar-track { background: var(--bg-alt); border-radius: 10px; }
+        .scroll-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        input[type=number], input[type=text], input[type=password], textarea, select { background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-main); outline: none; transition: all 0.2s; border-radius: 0.5rem; padding: 0.6rem 0.8rem; }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1); }
+
+        #toast { position: fixed; top: 24px; right: 24px; z-index: 9999; transform: translateX(120%); transition: transform 0.3s ease; }
+        #toast.show { transform: translateX(0); }
+
+        .dim-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 4px; display: block; }
+        .fade-in { animation: fadeIn 0.3s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        .disclaimer-bar { background: #1e293b; border-bottom: 2px solid var(--secondary); padding: 8px 24px; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 11px; color: #f8fafc; letter-spacing: 0.02em; text-align: center; flex-wrap: wrap; position: sticky; top: 0; z-index: 100; }
+        .disclaimer-bar strong { color: #facc15; font-weight: 700; }
+        .disclaimer-bar .sep { opacity: 0.3; margin: 0 4px; }
+
+        .disclaimer-footer { background: #f1f5f9; border-top: 1px solid var(--border); padding: 20px 24px; text-align: center; font-size: 11px; color: var(--text-muted); line-height: 1.8; margin-top: auto; }
+        .nav-btn { background:transparent; border:none; padding:10px 14px; font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; border-bottom:3px solid transparent; cursor:pointer; white-space:nowrap; }
+        .nav-btn.active { color:var(--primary); border-bottom-color:var(--primary); }
+
+        .likert-btn { padding: 10px 4px; border-radius: 0.5rem; border: 1px solid var(--border); background: var(--bg-surface); cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-muted); transition: all 0.2s; text-align: center; flex: 1; }
+        .likert-btn:hover { border-color: var(--primary); color: var(--primary); background: #f0fdfa; }
+        .likert-btn.active { background: #0f766e; color: white; border-color: #0f766e; }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+<div class="disclaimer-bar" id="globalDisclaimer">
+    <i class="fas fa-shield-alt" style="color:#facc15; font-size:14px;"></i>
+    <span style="flex:1;">
+        <strong>SISTEM MAKLUMAT SULIT &amp; TERHAD</strong>
+        <span class="sep">|</span> Kegunaan Tertutup <strong>UNIT KOKURIKULUM IPGKDA</strong>
+        <span class="sep">|</span> Kod Kursus: <strong>MPU3421</strong>
+        <span class="sep">|</span> <strong>Dibangunkan oleh HANIFF FAIZAL BIN CHEK ANI, IPG KAMPUS DARULAMAN</strong>
+    </span>
+    <button onclick="document.getElementById('globalDisclaimer').style.display='none'" style="background:none; border:none; color:white; cursor:pointer; font-size:16px; padding:0 4px;"><i class="fas fa-times"></i></button>
+</div>
+
+<div id="toast">
+    <div class="academic-card px-5 py-4 flex items-center gap-3 text-sm font-bold shadow-lg" id="toastMsg" style="border-left: 4px solid var(--primary);"></div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div class="shell" id="loginScreen">
+    <div class="academic-card w-full shadow-2xl p-8 sm:p-10 border-t-4" style="max-width:440px; border-top-color: var(--primary);">
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 mx-auto mb-3 flex items-center justify-center bg-teal-50 text-teal-700 rounded-full border border-teal-200">
+                <i class="fas fa-gamepad text-3xl"></i>
+            </div>
+            <div class="text-[10px] font-extrabold tracking-widest text-teal-800 uppercase mb-1">IPG Kampus Darulaman</div>
+            <h1 class="font-serif-title text-2xl font-bold text-slate-800">Portal Pemarkahan</h1>
+            <p class="text-xs text-slate-500 font-medium mt-1">MPU3421 — Kokurikulum Permainan</p>
+        </div>
+
+        <div class="flex border-b mb-6">
+            <button class="flex-1 py-2 text-xs font-bold text-teal-800 border-b-2 border-teal-800" id="btnRoleStudent" onclick="switchLoginRole('student')"><i class="fas fa-user-graduate me-1"></i> Ruang Pelajar</button>
+            <button class="flex-1 py-2 text-xs font-bold text-slate-400 border-b-2 border-transparent" id="btnRoleLec" onclick="switchLoginRole('lecturer')"><i class="fas fa-user-shield me-1"></i> Ruang Pensyarah</button>
+        </div>
+
+        <div class="flex flex-col gap-4 mb-6">
+            <div>
+                <label class="dim-label" id="lblId">No. Kad Pengenalan (KP)</label>
+                <input type="text" id="idIn" placeholder="Sila masukkan No. KP" class="w-full font-mono-score text-center text-sm">
+            </div>
+            <div id="pwBox" style="display:none;">
+                <label class="dim-label">Kata Laluan</label>
+                <input type="password" id="pwIn" value="123" class="w-full text-center text-sm">
+            </div>
+        </div>
+
+        <button onclick="handleAuth()" id="loginBtn" class="btn-primary w-full rounded-lg p-3 text-xs mb-3">
+            <i class="fas fa-sign-in-alt me-2"></i> Log Masuk Sistem
+        </button>
+
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center" style="font-size:10.5px; color:var(--text-muted); line-height:1.5;">
+            <div class="font-bold text-slate-700 uppercase tracking-wider mb-1"><i class="fas fa-lock text-amber-600 me-1"></i> Kegunaan Tertutup &amp; Penafian</div>
+            <p class="mb-1">Sistem ini mengandungi maklumat sulit pentaksiran akademik IPGKDA.</p>
+            <div class="font-bold text-teal-900 border-t border-slate-200 pt-1 mt-1">Dibangunkan oleh HANIFF FAIZAL BIN CHEK ANI<br>IPG KAMPUS DARULAMAN</div>
+        </div>
+    </div>
+</div>
+
+<!-- STUDENT DASHBOARD -->
+<div id="studentDash" style="display:none;" class="min-h-screen flex-col">
+    <div class="bg-teal-800 text-white px-8 py-4 flex items-center justify-between sticky top-0 z-50 shadow-md">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-teal-700/50 border border-teal-600 rounded-lg flex items-center justify-center text-lg">
+                <i class="fas fa-user-graduate"></i>
+            </div>
+            <div>
+                <div class="text-[10px] font-bold tracking-widest text-teal-200 uppercase">Pelajar MPU3421</div>
+                <div id="hdrName" class="font-serif-title font-bold text-lg">--</div>
+            </div>
+        </div>
+        <button onclick="logout()" class="btn-outline border-teal-600 text-white hover:bg-teal-700 px-4 py-2 rounded-lg text-xs">
+            <i class="fas fa-sign-out-alt me-1"></i> Keluar
+        </button>
+    </div>
+
+    <div class="bg-white border-b border-slate-200 px-8 pt-3">
+        <div class="flex gap-2">
+            <button class="nav-btn active" id="sbtn-profile" onclick="showStudentTab('profile')"><i class="fas fa-id-badge me-1"></i> Profil Pelajar</button>
+            <button class="nav-btn" id="sbtn-peer" onclick="showStudentTab('peer')"><i class="fas fa-users me-1"></i> Penilaian Rakan Sebaya (360°)</button>
+        </div>
+    </div>
+
+    <div class="p-8 flex-1">
+        <!-- STUDENT PROFILE TAB -->
+        <div id="stab-profile" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="academic-card p-6">
+                <h3 class="font-serif-title text-xl font-bold text-slate-800 mb-4 border-b pb-2">Profil Pelajar MPU3421</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="dim-label">Nama Penuh Pelajar</label>
+                        <div id="sN" class="font-serif-title text-lg font-bold text-slate-800">--</div>
+                    </div>
+                    <div>
+                        <label class="dim-label">No. Kad Pengenalan</label>
+                        <div id="sK" class="font-mono-score text-sm font-bold text-teal-800 bg-slate-50 p-2 border rounded">--</div>
+                    </div>
+                    <div>
+                        <label class="dim-label">Kumpulan / Kelas</label>
+                        <div id="sC" class="text-sm font-bold text-slate-700">--</div>
+                    </div>
+                    <div>
+                        <label class="dim-label">Status Muat Naik Gambar Pasport</label>
+                        <div id="sS" class="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 inline-block">Menunggu Muat Naik</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="academic-card p-6 flex flex-col items-center justify-center text-center">
+                <div class="w-36 h-48 border-2 border-dashed border-slate-300 rounded-lg overflow-hidden flex items-center justify-center bg-slate-50 mb-4 relative">
+                    <img id="sImg" style="display:none;" class="w-full h-full object-cover">
+                    <div id="sPl" class="text-slate-400 flex flex-col items-center gap-2">
+                        <i class="fas fa-user-circle text-4xl"></i>
+                        <span class="text-[10px] font-bold uppercase">Foto Pasport</span>
+                    </div>
+                </div>
+                <input type="file" id="fIn" class="hidden" accept="image/*" onchange="previewPassportPhoto(this)">
+                <div class="flex gap-2">
+                    <button class="btn-outline py-2 px-4 text-xs rounded-lg" onclick="document.getElementById('fIn').click()">Pilih Foto</button>
+                    <button class="btn-primary py-2 px-4 text-xs rounded-lg" id="uploadPhotoBtn" onclick="uploadPassportPhoto()"><i class="fas fa-upload me-1"></i> Muat Naik</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STUDENT PEER EVALUATION TAB -->
+        <div id="stab-peer" style="display:none;" class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+            <div class="academic-card p-4">
+                <div class="text-xs font-bold uppercase tracking-wider mb-3 flex justify-between items-center text-slate-700">
+                    <span>Senarai Rakan Sekelas</span>
+                    <span id="peerCountBadge" class="font-mono-score bg-teal-50 text-teal-800 text-[10px] px-2 py-0.5 rounded border">0</span>
+                </div>
+                <div id="peerStudentList" class="scroll-thin max-h-[calc(100vh-220px)] overflow-y-auto space-y-2"></div>
+            </div>
+
+            <div class="academic-card p-6">
+                <div id="peerEvalEmpty" class="text-center py-12 border-dashed border-2 rounded-lg bg-slate-50">
+                    <i class="fas fa-hand-pointer text-4xl text-slate-300 mb-3"></i>
+                    <h4 class="font-serif-title text-lg font-bold text-slate-700 mb-1">Penilaian Rakan Sebaya 360°</h4>
+                    <p class="text-xs text-slate-500 max-w-sm mx-auto">Sila pilih nama rakan dari senarai di sebelah kiri untuk mengisi borang penilaian.</p>
+                </div>
+
+                <div id="peerEvalForm" style="display:none;" class="fade-in">
+                    <div class="flex items-center justify-between border-b pb-4 mb-6">
+                        <div>
+                            <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Menilai Rakan</div>
+                            <div id="peerTargetName" class="font-serif-title text-xl font-bold text-slate-800">--</div>
+                            <div id="peerTargetMeta" class="font-mono-score text-xs text-slate-500">--</div>
+                        </div>
+                    </div>
+
+                    <div id="peerDynamicQuestionsContainer" class="space-y-6"></div>
+
+                    <div class="mt-6 border-t pt-4">
+                        <label class="dim-label mb-2">Catatan Tambahan (Pilihan)</label>
+                        <textarea id="peerNoteIn" rows="2" class="w-full text-xs" placeholder="Ulasan positif atau cadangan penambahbaikan..."></textarea>
+                    </div>
+
+                    <button class="btn-primary w-full py-3 rounded-lg text-xs mt-6" onclick="submitPeerForm()">
+                        <i class="fas fa-paper-plane me-2"></i> Hantar Penilaian Rakan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LECTURER DASHBOARD -->
+<div id="lecturerDash" style="display:none;" class="min-h-screen flex-col">
+    <div class="bg-teal-800 text-white px-8 py-4 flex items-center justify-between sticky top-0 z-50 shadow-md">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-teal-700/50 border border-teal-600 rounded-lg flex items-center justify-center text-lg">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <div>
+                <div id="lecRoleBadge" class="text-[10px] font-bold tracking-widest text-teal-200 uppercase">Pensyarah Penilai</div>
+                <div id="lecName" class="font-serif-title font-bold text-lg">--</div>
+            </div>
+        </div>
+        <button onclick="logout()" class="btn-outline border-teal-600 text-white hover:bg-teal-700 px-4 py-2 rounded-lg text-xs">
+            <i class="fas fa-sign-out-alt me-1"></i> Keluar
+        </button>
+    </div>
+
+    <div class="bg-white border-b border-slate-200 px-8 pt-3">
+        <div class="flex gap-2 overflow-x-auto pb-1" id="navContainer">
+            <button class="nav-btn active" id="btn-marking" onclick="showLecTab('marking')"><i class="fas fa-calculator me-1"></i> Pemarkahan Induk</button>
+            <button class="nav-btn" id="btn-rubrik" onclick="showLecTab('rubrik')"><i class="fas fa-clipboard-list me-1"></i> Panel Rubrik</button>
+            <button class="nav-btn text-teal-800" id="btn-radar" onclick="showLecTab('radar')"><i class="fas fa-spider me-1"></i> Analisis Rakan</button>
+            <button class="nav-btn" id="btn-summary" onclick="showLecTab('summary')"><i class="fas fa-table me-1"></i> Rekod Prestasi</button>
+            <button class="nav-btn" id="btn-laporan" onclick="showLecTab('laporan')"><i class="fas fa-chart-pie me-1"></i> Analisis Gred</button>
+
+            <button class="nav-btn text-indigo-800 admin-menu" id="btn-peerconfig" style="display:none;" onclick="showLecTab('peerconfig')"><i class="fas fa-cog me-1"></i> ⚙️ Tetapan Soalan Rakan (360°)</button>
+            <button class="nav-btn text-teal-800 admin-menu" id="btn-hppconfig" style="display:none;" onclick="showLecTab('hppconfig')"><i class="fas fa-sliders-h me-1"></i> ⚙️ Tetapan Kriteria HPP</button>
+        </div>
+    </div>
+
+    <div class="p-8 grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 flex-1">
+        <div class="academic-card p-4 sticky top-24 self-start max-h-[calc(100vh-120px)] flex flex-col">
+            <div class="text-xs font-bold uppercase tracking-wider mb-3 flex justify-between items-center text-slate-700">
+                <span>Senarai Pelajar</span>
+                <span id="studentCount" class="font-mono-score bg-slate-100 text-teal-800 text-[10px] px-2 py-0.5 rounded border">0</span>
+            </div>
+            <div class="mb-3 space-y-2">
+                <select id="classFilter" onchange="filterStudents()" class="w-full text-xs font-bold bg-slate-50 border rounded">
+                    <option value="">Semua Kelas</option>
+                </select>
+                <input type="text" id="searchStudent" placeholder="Cari nama atau KP..." class="w-full text-xs bg-slate-50 border rounded" onkeyup="filterStudents()">
+            </div>
+            <div id="sList" class="scroll-thin flex-1 overflow-y-auto pr-1"></div>
+        </div>
+
+        <div class="min-w-0">
+            <!-- TAB: PEMARKAHAN INDUK -->
+            <div id="ltab-marking">
+                <div id="gradingEmpty" class="academic-card p-12 text-center border-dashed border-2 bg-slate-50 min-h-[450px] flex items-center justify-center">
+                    <div>
+                        <i class="fas fa-hand-pointer text-4xl text-slate-300 mb-3"></i>
+                        <h4 class="font-serif-title text-xl font-bold text-slate-700 mb-1">Pemarkahan Induk MPU3421 (100%)</h4>
+                        <p class="text-xs text-slate-500 max-w-sm mx-auto">Sila pilih nama pelajar dari senarai di sebelah kiri untuk mengisi atau menyemak markah.</p>
+                    </div>
+                </div>
+
+                <div id="gradingPanel" style="display:none;" class="fade-in">
+                    <div class="academic-card p-5 mb-6 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-teal-50 text-teal-700 border rounded-full flex items-center justify-center flex-shrink-0 text-xl font-bold overflow-hidden">
+                                <img id="lecImgStud" style="display:none;" class="w-full h-full object-cover">
+                                <i id="lecImgIcon" class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Calon MPU3421</div>
+                                <div id="ln" class="font-serif-title text-xl font-bold text-slate-800">--</div>
+                                <div id="lk" class="font-mono-score text-xs text-slate-500 mt-1">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BORANG PEMARKAHAN HPK1 + HPK2 -->
+                    <div class="academic-card p-6 mb-6">
+                        <h3 class="font-serif-title text-lg font-bold text-slate-800 mb-4 border-b pb-2">Borang Pemarkahan MPU3421</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label class="dim-label">HPK1 — Ujian Amali (60 markah)</label>
+                                <input type="number" id="inHpk1" min="0" max="60" placeholder="0 - 60" class="w-full font-mono-score text-center" oninput="calcMarkahLive()">
+                            </div>
+                            <div>
+                                <label class="dim-label">HPK2 — HPP2 (20 markah)</label>
+                                <input type="number" id="inHpp2" min="0" max="20" placeholder="0 - 20" class="w-full font-mono-score text-center" oninput="calcMarkahLive()">
+                            </div>
+                            <div>
+                                <label class="dim-label">HPK2 — HPP5 (20 markah)</label>
+                                <input type="number" id="inHpp5" min="0" max="20" placeholder="0 - 20" class="w-full font-mono-score text-center" oninput="calcMarkahLive()">
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 border rounded-lg p-4 flex items-center justify-between">
+                            <div class="text-xs text-slate-500">
+                                Jumlah HPK2: <span id="liveHpk2" class="font-mono-score font-bold text-slate-700">0</span> / 40
+                            </div>
+                            <div class="text-sm font-bold text-teal-800">
+                                Jumlah Keseluruhan: <span id="liveTotal" class="font-mono-score text-xl">0</span> / 100
+                            </div>
+                            <div class="text-sm font-bold">
+                                Gred: <span id="liveGred" class="font-mono-score text-xl text-teal-900">-</span>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="dim-label">Catatan</label>
+                            <textarea id="markahNote" rows="2" class="w-full text-xs" placeholder="Catatan penilaian..."></textarea>
+                        </div>
+                        <button class="btn-primary w-full py-3 rounded-lg text-xs mt-4" onclick="saveMarkahNow()">
+                            <i class="fas fa-save me-2"></i> Simpan Markah
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: PANEL RUBRIK -->
+            <div id="ltab-rubrik" style="display:none;">
+                <div class="academic-card p-6">
+                    <h3 class="font-serif-title text-xl font-bold text-slate-800 mb-2">Panel Rubrik MPU3421</h3>
+                    <p class="text-xs text-slate-500">Penilaian berasaskan komponen rubrik terperinci.</p>
+                    <div id="rubrikContent" class="mt-4 space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- TAB: TETAPAN SOALAN RAKAN (ADMIN) -->
+            <div id="ltab-peerconfig" style="display:none;">
+                <div class="academic-card p-6 mb-6 border-l-4 border-indigo-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="font-serif-title text-xl font-bold text-slate-800 mb-1">⚙️ Tetapan Soalan Rakan (360°)</h3>
+                            <p class="text-xs text-slate-500">Tetapan khusus Super Admin untuk kriteria soalan penilaian rakan.</p>
+                        </div>
+                        <button class="btn-primary py-2 px-4 text-xs rounded-lg" onclick="savePeerConfigUI()">
+                            <i class="fas fa-lock me-1"></i> 🔒 Kunci &amp; Jana Header PEER_EVAL
+                        </button>
+                    </div>
+                    <div id="peerQuestionsBuilder" class="space-y-4 my-6"></div>
+                    <button class="btn-outline py-2 px-4 text-xs rounded-lg text-indigo-700 border-indigo-300" onclick="addPeerQuestionUI()">
+                        <i class="fas fa-plus me-1"></i> Tambah Soalan Rakan
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB: TETAPAN KRITERIA HPP (ADMIN) -->
+            <div id="ltab-hppconfig" style="display:none;">
+                <div class="academic-card p-6 mb-6 border-l-4 border-teal-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="font-serif-title text-xl font-bold text-slate-800 mb-1">⚙️ Tetapan Kriteria &amp; Sub-Rubrik HPP</h3>
+                            <p class="text-xs text-slate-500">Pengurusan Tugasan, Komponen HPP, dan Sub-Rubrik breakdown secara dinamik.</p>
+                        </div>
+                        <button class="btn-primary py-2 px-4 text-xs rounded-lg" onclick="saveHppConfigUI()">
+                            <i class="fas fa-save me-1"></i> Simpan Tetapan HPP
+                        </button>
+                    </div>
+                    <div id="hppConfigBuilder" class="space-y-6 my-6"></div>
+                    <button class="btn-outline py-2 px-4 text-xs rounded-lg text-teal-700 border-teal-300" onclick="addTugasanUI()">
+                        <i class="fas fa-plus me-1"></i> Tambah Tugasan Baru
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB: ANALISIS RAKAN (RADAR) -->
+            <div id="ltab-radar" style="display:none;">
+                <div class="academic-card p-6 mb-6">
+                    <h3 class="font-serif-title text-xl font-bold text-slate-800 mb-2">Analisis Spider Web Penilaian Rakan 360°</h3>
+                    <p class="text-xs text-slate-500 mb-4">Grafik Radar Chart memaparkan purata dapatan penilaian rakan sekelas.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div class="h-80 flex items-center justify-center p-4 bg-slate-50 rounded border">
+                            <canvas id="peerSpiderChart"></canvas>
+                        </div>
+                        <div class="space-y-3" id="peerRadarStats">
+                            <div class="p-3 bg-teal-50 border border-teal-200 rounded">
+                                <div class="text-[10px] font-bold text-teal-800 uppercase">Purata Skor Terkumpul</div>
+                                <div id="radarAvgScore" class="font-mono-score text-3xl font-bold text-teal-900">0.0 / 5.0</div>
+                            </div>
+                            <div id="radarDimList" class="space-y-1 text-xs"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: REKOD PRESTASI -->
+            <div id="ltab-summary" style="display:none;">
+                <div class="academic-card p-6">
+                    <h3 class="font-serif-title text-xl font-bold text-slate-800 mb-4 border-b pb-3">Buku Rekod Pemarkahan MPU3421</h3>
+                    <div class="overflow-x-auto border rounded-lg">
+                        <table class="w-full text-center text-xs">
+                            <thead class="bg-slate-100 font-bold border-b">
+                                <tr>
+                                    <th class="p-2 text-left">Nama Pelajar</th>
+                                    <th class="p-2">No. KP</th>
+                                    <th class="p-2">Kelas</th>
+                                    <th class="p-2">HPK1 (60)</th>
+                                    <th class="p-2">HPP2 (20)</th>
+                                    <th class="p-2">HPP5 (20)</th>
+                                    <th class="p-2">Jumlah (100)</th>
+                                    <th class="p-2">Gred</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: ANALISIS GRED -->
+            <div id="ltab-laporan" style="display:none;">
+                <div class="academic-card p-6 mb-6 border-l-4" style="border-left-color: var(--secondary);">
+                    <h3 class="font-serif-title text-xl font-bold text-slate-800">Analisis Taburan Gred MPU3421</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="disclaimer-footer">
+    <div class="font-extrabold text-teal-900 text-[12px] tracking-wide">
+        Dibangunkan oleh HANIFF FAIZAL BIN CHEK ANI, IPG KAMPUS DARULAMAN
+    </div>
+    <div class="mt-1 text-[10px] text-slate-400">&copy; 2026 Hak Cipta Terpelihara.</div>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbzCTDTfxeH-KO5Ri8yHZvUa-9qMI5G1wCk3tTHL2ufS3a03gjXZh5sr16z4u6XnF5VSoQ/exec";
+
+let curLec = "meharmadhafadz@ipgm.edu.my";
+let currentRole = "student";
+let curUser = null;
+let curS = null;
+let sData = [];
+let classmateData = [];
+let selectedPeerTarget = null;
+let peerScoresMap = {};
+let currentPeerQuestions = [];
+let currentHppConfig = [];
+let isSuperAdminUser = false;
+
+function showToast(msg, type='success') {
+    const t = document.getElementById('toast'), m = document.getElementById('toastMsg');
+    if (!t || !m) return;
+    m.innerHTML = `<i class="fas ${type==='success'?'fa-check-circle text-teal-600':'fa-exclamation-triangle text-amber-600'}"></i> <span>${msg}</span>`;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function switchLoginRole(role) {
+    currentRole = role;
+    document.getElementById('btnRoleStudent').className = role === 'student' ? 'flex-1 py-2 text-xs font-bold text-teal-800 border-b-2 border-teal-800' : 'flex-1 py-2 text-xs font-bold text-slate-400 border-b-2 border-transparent';
+    document.getElementById('btnRoleLec').className = role === 'lecturer' ? 'flex-1 py-2 text-xs font-bold text-teal-800 border-b-2 border-teal-800' : 'flex-1 py-2 text-xs font-bold text-slate-400 border-b-2 border-transparent';
+    document.getElementById('lblId').innerText = role === 'student' ? 'No. Kad Pengenalan (KP)' : 'Emel Rasmi Pensyarah';
+    document.getElementById('idIn').placeholder = role === 'student' ? 'Sila masukkan No. KP' : 'nama@ipgm.edu.my';
+    document.getElementById('pwBox').style.display = role === 'lecturer' ? 'block' : 'none';
+}
+
+async function handleAuth() {
+    const id = document.getElementById('idIn').value.trim();
+    if (!id) return showToast('Sila masukkan maklumat pendaftaran', 'warn');
+
+    if (currentRole === 'student') {
+        const btn = document.getElementById('loginBtn');
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i> Mengesahkan...`;
+
+        try {
+            const r = await fetch(`${API}?action=checkLogin&noKP=${encodeURIComponent(id)}`);
+            const o = await r.json();
+            if (o.status === 'success') {
+                curS = o.data;
+                curUser = o.data;
+                showToast(`Selamat datang, ${curS.Nama_Pelajar || id}`);
+                renderStudent(curS);
+            } else { showToast(o.message || 'No. KP tidak dijumpai', 'warn'); }
+        } catch(e) { showToast('Ralat log masuk pelajar.', 'warn'); }
+
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-sign-in-alt me-2"></i> Log Masuk Sistem`;
+    } else {
+        const pw = document.getElementById('pwIn').value.trim();
+        const btn = document.getElementById('loginBtn');
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i> Mengesahkan...`;
+
+        try {
+            const r = await fetch(`${API}?action=lecturerLogin&email=${encodeURIComponent(id)}&pass=${encodeURIComponent(pw)}`);
+            const o = await r.json();
+            if (o.status === 'success') {
+                curLec = id;
+                isSuperAdminUser = !!o.isAdmin;
+                document.getElementById('lecName').innerText = o.name || curLec;
+                document.getElementById('lecRoleBadge').innerText = isSuperAdminUser ? `Penyelaras MPU3421 (Admin)` : "Pensyarah Penilai";
+                await initLec();
+            } else {
+                showToast(o.message || 'Log masuk pensyarah gagal.', 'warn');
+            }
+        } catch(e) {
+            showToast('Ralat sambungan pelayan.', 'warn');
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-sign-in-alt me-2"></i> Log Masuk Sistem`;
+    }
+}
+
+function renderStudent(d) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('studentDash').style.display = 'flex';
+    document.getElementById('hdrName').innerText = d.Nama_Pelajar || '--';
+    document.getElementById('sN').innerText = d.Nama_Pelajar || '--';
+    document.getElementById('sK').innerText = d.No_KP || '--';
+    document.getElementById('sC').innerText = d.Kelas || '--';
+
+    const sS = document.getElementById('sS');
+    if (sS) {
+        if (d.Status_Upload === 'Selesai') {
+            sS.innerText = "Selesai Muat Naik";
+            sS.className = "text-xs font-bold text-teal-700 bg-teal-50 px-3 py-1 rounded-full border border-teal-200 inline-block";
+        } else {
+            sS.innerText = "Menunggu Muat Naik";
+            sS.className = "text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 inline-block";
+        }
+    }
+
+    if (d.Link_Gambar) {
+        const sImg = document.getElementById('sImg');
+        sImg.src = d.Link_Gambar;
+        sImg.style.display = 'block';
+        document.getElementById('sPl').style.display = 'none';
+    } else {
+        document.getElementById('sImg').style.display = 'none';
+        document.getElementById('sPl').style.display = 'flex';
+    }
+
+    showStudentTab('profile');
+    loadStudentPeerList();
+}
+
+function showStudentTab(tab) {
+    document.getElementById('stab-profile').style.display = tab === 'profile' ? 'grid' : 'none';
+    document.getElementById('stab-peer').style.display = tab === 'peer' ? 'grid' : 'none';
+    document.getElementById('sbtn-profile').className = tab === 'profile' ? 'nav-btn active' : 'nav-btn';
+    document.getElementById('sbtn-peer').className = tab === 'peer' ? 'nav-btn active' : 'nav-btn';
+}
+
+function previewPassportPhoto(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.getElementById('sImg');
+            img.src = e.target.result;
+            img.style.display = 'block';
+            document.getElementById('sPl').style.display = 'none';
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+async function uploadPassportPhoto() {
+    const fi = document.getElementById('fIn');
+    if (!fi || !fi.files || !fi.files[0]) return showToast('Sila pilih foto dahulu.', 'warn');
+    const file = fi.files[0];
+    const btn = document.getElementById('uploadPhotoBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> Muat Naik...`; }
+
+    showToast('Memuat naik foto pasport ke Google Drive...', 'success');
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const b64 = e.target.result.split(',')[1];
+        try {
+            const response = await fetch(API, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: "uploadImage",
+                    noKP: curUser.No_KP.toString(),
+                    imageData: b64,
+                    mimeType: file.type,
+                    fileName: `MPU3421_${curUser.No_KP}_${file.name}`
+                })
+            });
+            const resObj = await response.json();
+            if (resObj.status === 'success') {
+                showToast('Foto pasport berjaya disimpan!');
+                curUser.Status_Upload = "Selesai";
+                curUser.Link_Gambar = resObj.url || e.target.result;
+                const sS = document.getElementById('sS');
+                if (sS) {
+                    sS.innerText = "Selesai Muat Naik";
+                    sS.className = "text-xs font-bold text-teal-700 bg-teal-50 px-3 py-1 rounded-full border border-teal-200 inline-block";
+                }
+            } else {
+                showToast(resObj.message || 'Gagal menyimpan foto.', 'warn');
+            }
+        } catch(e) {
+            showToast('Foto berjaya dihantar ke pelayan.', 'success');
+        }
+        if (btn) { btn.disabled = false; btn.innerHTML = `<i class="fas fa-upload me-1"></i> Muat Naik`; }
+    };
+    reader.readAsDataURL(file);
+}
+
+async function loadStudentPeerList() {
+    if (!curUser) return;
+    try {
+        const r = await fetch(`${API}?action=getClassmates&noKP=${encodeURIComponent(curUser.No_KP)}&kelas=${encodeURIComponent(curUser.Kelas)}`);
+        const o = await r.json();
+        classmateData = o.data || [];
+        const doneSet = new Set(o.done || []);
+
+        document.getElementById('peerCountBadge').innerText = `${doneSet.size}/${classmateData.length}`;
+
+        const container = document.getElementById('peerStudentList');
+        if (!container) return;
+        container.innerHTML = '';
+
+        classmateData.forEach(c => {
+            const isDone = doneSet.has(c.No_KP);
+            const div = document.createElement('div');
+            div.className = 's-card' + (isDone ? ' done' : '');
+            div.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-xs text-slate-800">${c.Nama_Pelajar}</div>
+                        <div class="font-mono-score text-[10px] text-slate-500">${c.No_KP}</div>
+                    </div>
+                    ${isDone ? '<span class="text-xs text-emerald-600 font-bold"><i class="fas fa-check-circle"></i></span>' : '<span class="text-xs text-slate-300"><i class="fas fa-chevron-right"></i></span>'}
+                </div>
+            `;
+            div.onclick = () => selectPeerTarget(c, isDone);
+            container.appendChild(div);
+        });
+
+        try {
+            const cr = await fetch(`${API}?action=getPeerConfig`);
+            const co = await cr.json();
+            if (co.status === 'success' && co.questions) currentPeerQuestions = co.questions;
+        } catch(e){}
+    } catch(e) {}
+}
+
+function selectPeerTarget(target, isDone) {
+    selectedPeerTarget = target;
+    peerScoresMap = {};
+
+    document.getElementById('peerEvalEmpty').style.display = 'none';
+    document.getElementById('peerEvalForm').style.display = 'block';
+    document.getElementById('peerTargetName').innerText = target.Nama_Pelajar;
+    document.getElementById('peerTargetMeta').innerText = `${target.No_KP} | ${target.Kelas}`;
+
+    renderDynamicPeerForm();
+}
+
+function renderDynamicPeerForm() {
+    const container = document.getElementById('peerDynamicQuestionsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    currentPeerQuestions.forEach((q, idx) => {
+        const div = document.createElement('div');
+        div.className = 'p-4 bg-slate-50 border rounded-lg';
+        div.innerHTML = `
+            <div class="font-bold text-xs text-slate-800 mb-1">${q.title} (${q.dimension || 'Atribut'})</div>
+            <div class="text-xs text-slate-500 mb-3">${q.label}</div>
+            <div class="flex gap-2">
+                ${[1, 2, 3, 4, 5].map(v => `<button type="button" class="likert-btn" id="lbtn_${q.id}_${v}" onclick="selectLikert('${q.id}', ${v})">${v}</button>`).join('')}
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function selectLikert(qId, val) {
+    peerScoresMap[qId] = val;
+    [1, 2, 3, 4, 5].forEach(v => {
+        const btn = document.getElementById(`lbtn_${qId}_${v}`);
+        if (btn) btn.className = v === val ? 'likert-btn active' : 'likert-btn';
+    });
+}
+
+async function submitPeerForm() {
+    if (!selectedPeerTarget) return;
+    if (Object.keys(peerScoresMap).length < currentPeerQuestions.length) {
+        return showToast('Sila berikan penilaian bagi kesemua soalan.', 'warn');
+    }
+
+    showToast('Menghantar penilaian rakan...', 'success');
+    try {
+        await fetch(API, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'submitPeerEval',
+                evaluatorKP: curUser.No_KP,
+                evaluatorName: curUser.Nama_Pelajar,
+                evaluatorKelas: curUser.Kelas,
+                targetKP: selectedPeerTarget.No_KP,
+                targetName: selectedPeerTarget.Nama_Pelajar,
+                targetKelas: selectedPeerTarget.Kelas,
+                scores: peerScoresMap,
+                note: document.getElementById('peerNoteIn').value.trim()
+            })
+        });
+        showToast('Penilaian rakan berjaya dihantar!');
+        document.getElementById('peerEvalForm').style.display = 'none';
+        document.getElementById('peerEvalEmpty').style.display = 'block';
+        loadStudentPeerList();
+    } catch(e) { showToast('Gagal menghantar penilaian.', 'warn'); }
+}
+
+async function initLec() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('lecturerDash').style.display = 'flex';
+
+    updateNavVisibility();
+
+    try {
+        const r = await fetch(`${API}?action=getLecturerStudents&email=${encodeURIComponent(curLec)}`);
+        const o = await r.json();
+        sData = o.data || [];
+        isSuperAdminUser = !!o.isAdmin;
+        if (o.config) currentHppConfig = o.config;
+
+        updateNavVisibility();
+        populateClassFilters();
+        filterStudents();
+        loadGradeSummary();
+
+        await loadPeerConfigUI();
+        await loadHppConfigUI();
+
+        showLecTab('marking');
+        showToast('Data MPU3421 Berjaya Dimuat Turun.');
+    } catch(e) { showToast('Gagal memuat turun data.', 'warn'); }
+}
+
+function updateNavVisibility() {
+    const adminMenus = document.querySelectorAll('.admin-menu');
+    adminMenus.forEach(btn => {
+        btn.style.display = isSuperAdminUser ? 'inline-block' : 'none';
+    });
+}
+
+function showLecTab(tab) {
+    const ADMIN_ONLY_TABS = ['peerconfig', 'hppconfig'];
+
+    if (ADMIN_ONLY_TABS.includes(tab) && !isSuperAdminUser) {
+        showToast('Akses Terhad: Menu ini khusus untuk Super Admin sahaja.', 'warn');
+        tab = 'marking';
+    }
+
+    const ALL_TABS = ['marking','rubrik','peerconfig','hppconfig','radar','summary','laporan'];
+    ALL_TABS.forEach(t => {
+        const el = document.getElementById('ltab-' + t);
+        if (el) el.style.display = 'none';
+    });
+
+    const target = document.getElementById('ltab-' + tab);
+    if (target) target.style.display = 'block';
+
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.getElementById('btn-' + tab);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    if (tab === 'rubrik') renderRubrikPanel();
+    if (tab === 'summary') renderSummaryTable();
+    if (tab === 'laporan') loadGradeSummary();
+}
+
+function populateClassFilters() {
+    const classSet = new Set();
+    sData.forEach(s => {
+        if (s.Kelas && s.Kelas.toString().trim()) {
+            classSet.add(s.Kelas.toString().trim());
+        }
+    });
+    const classes = Array.from(classSet).sort();
+
+    const sel = document.getElementById('classFilter');
+    if (sel) {
+        sel.innerHTML = '<option value="">Semua Kelas</option>' +
+            classes.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+}
+
+function filterStudents() {
+    const q = document.getElementById('searchStudent').value.toLowerCase().trim();
+    const classFilterEl = document.getElementById('classFilter');
+    const selectedClass = classFilterEl ? classFilterEl.value.trim() : "";
+    const list = document.getElementById('sList');
+    if (!list) return;
+    list.innerHTML = '';
+
+    let count = 0;
+    sData.forEach(s => {
+        const matchClass = !selectedClass || (s.Kelas && s.Kelas.toString().trim() === selectedClass);
+        const matchQuery = !q || (s.Nama_Pelajar && s.Nama_Pelajar.toLowerCase().includes(q)) || (s.No_KP && s.No_KP.includes(q));
+
+        if (matchClass && matchQuery) {
+            count++;
+            const div = document.createElement('div');
+            div.className = 's-card' + (curS && curS.No_KP === s.No_KP ? ' selected' : '');
+            div.innerHTML = `<div class="font-bold text-xs text-slate-800">${s.Nama_Pelajar}</div><div class="font-mono-score text-[10px] text-slate-500 mt-0.5">${s.No_KP} | ${s.Kelas}</div>`;
+            div.onclick = () => {
+                document.querySelectorAll('.s-card').forEach(c => c.classList.remove('selected'));
+                div.classList.add('selected');
+                curS = s;
+                document.getElementById('gradingPanel').style.display = 'block';
+                document.getElementById('gradingEmpty').style.display = 'none';
+                document.getElementById('ln').innerText = s.Nama_Pelajar;
+                document.getElementById('lk').innerText = `${s.No_KP} (${s.Kelas})`;
+
+                if (s.markahSediaAda) {
+                    document.getElementById('inHpk1').value = s.markahSediaAda.hpk1 || 0;
+                    document.getElementById('inHpp2').value = s.markahSediaAda.hpp2 || 0;
+                    document.getElementById('inHpp5').value = s.markahSediaAda.hpp5 || 0;
+                    document.getElementById('markahNote').value = s.markahSediaAda.catatan === '-' ? '' : (s.markahSediaAda.catatan || '');
+                } else {
+                    document.getElementById('inHpk1').value = '';
+                    document.getElementById('inHpp2').value = '';
+                    document.getElementById('inHpp5').value = '';
+                    document.getElementById('markahNote').value = '';
+                }
+                calcMarkahLive();
+            };
+            list.appendChild(div);
+        }
+    });
+
+    const cEl = document.getElementById('studentCount');
+    if (cEl) cEl.innerText = count;
+}
+
+function calcMarkahLive() {
+    const hp1 = Number(document.getElementById('inHpk1').value) || 0;
+    const hpp2 = Number(document.getElementById('inHpp2').value) || 0;
+    const hpp5 = Number(document.getElementById('inHpp5').value) || 0;
+    const hp2 = hpp2 + hpp5;
+    const total = hp1 + hp2;
+
+    document.getElementById('liveHpk2').innerText = hp2;
+    document.getElementById('liveTotal').innerText = total;
+    document.getElementById('liveGred').innerText = calculateGred(total);
+}
+
+function calculateGred(totalAtas100) {
+    if (totalAtas100 >= 90) return "A+";
+    if (totalAtas100 >= 80) return "A";
+    if (totalAtas100 >= 75) return "A-";
+    if (totalAtas100 >= 70) return "B+";
+    if (totalAtas100 >= 65) return "B";
+    if (totalAtas100 >= 60) return "B-";
+    if (totalAtas100 >= 55) return "C+";
+    if (totalAtas100 >= 50) return "C";
+    if (totalAtas100 >= 40) return "C-";
+    if (totalAtas100 >= 30) return "D+";
+    if (totalAtas100 >= 20) return "D";
+    return "F";
+}
+
+async function saveMarkahNow() {
+    if (!curS) return showToast('Sila pilih pelajar dahulu.', 'warn');
+    const hp1 = Number(document.getElementById('inHpk1').value) || 0;
+    const hpp2 = Number(document.getElementById('inHpp2').value) || 0;
+    const hpp5 = Number(document.getElementById('inHpp5').value) || 0;
+
+    if (hp1 < 0 || hp1 > 60) return showToast('HPK1 mesti antara 0 - 60.', 'warn');
+    if (hpp2 < 0 || hpp2 > 20) return showToast('HPP2 mesti antara 0 - 20.', 'warn');
+    if (hpp5 < 0 || hpp5 > 20) return showToast('HPP5 mesti antara 0 - 20.', 'warn');
+
+    showToast('Menyimpan markah...', 'success');
+    try {
+        const response = await fetch(API, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'saveMarkah',
+                noKP: curS.No_KP,
+                nama: curS.Nama_Pelajar,
+                kelas: curS.Kelas,
+                hpk1: hp1,
+                hpp2: hpp2,
+                hpp5: hpp5,
+                penilai: curLec,
+                catatan: document.getElementById('markahNote').value.trim()
+            })
+        });
+        const resObj = await response.json();
+        if (resObj.status === 'success') {
+            showToast(`Markah disimpan! Jumlah: ${resObj.total}, Gred: ${resObj.gred}`);
+            await initLec();
+        } else {
+            showToast(resObj.message || 'Gagal menyimpan markah.', 'warn');
+        }
+    } catch(e) { showToast('Gagal menyimpan markah.', 'warn'); }
+}
+
+function renderRubrikPanel() {
+    const container = document.getElementById('rubrikContent');
+    if (!container) return;
+    container.innerHTML = '';
+    if (!currentHppConfig || !currentHppConfig.length) {
+        container.innerHTML = '<p class="text-xs text-slate-500">Tiada konfigurasi rubrik. Sila tetapkan di menu "Tetapan Kriteria HPP".</p>';
+        return;
+    }
+    currentHppConfig.forEach(t => {
+        const div = document.createElement('div');
+        div.className = 'p-4 bg-slate-50 border rounded-lg';
+        let html = `<div class="font-bold text-sm text-teal-800 mb-2">${t.nama} (Wajaran: ${t.wajaran}%)</div>`;
+        t.hppList.forEach(hpp => {
+            html += `<div class="ml-3 mb-2"><span class="font-bold text-xs">${hpp.kod} — ${hpp.nama} (Max: ${hpp.maxScore})</span><ul class="ml-4 list-disc text-xs text-slate-600">`;
+            hpp.subCriteria.forEach(sub => {
+                html += `<li>${sub.nama} (${sub.maxScore}m) - ${sub.desc || ''}</li>`;
+            });
+            html += `</ul></div>`;
+        });
+        div.innerHTML = html;
+        container.appendChild(div);
+    });
+}
+
+function renderSummaryTable() {
+    const tbody = document.getElementById('summaryBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    sData.forEach(s => {
+        const m = s.markahSediaAda;
+        const tr = document.createElement('tr');
+        tr.className = 'border-b hover:bg-slate-50';
+        tr.innerHTML = `
+            <td class="p-2 text-left font-bold">${s.Nama_Pelajar}</td>
+            <td class="p-2 font-mono-score">${s.No_KP}</td>
+            <td class="p-2">${s.Kelas || '-'}</td>
+            <td class="p-2 font-mono-score">${m ? m.hpk1 : '-'}</td>
+            <td class="p-2 font-mono-score">${m ? m.hpp2 : '-'}</td>
+            <td class="p-2 font-mono-score">${m ? m.hpp5 : '-'}</td>
+            <td class="p-2 font-mono-score font-bold">${m ? m.total : '-'}</td>
+            <td class="p-2 font-bold ${m && (m.gred.startsWith('A') || m.gred.startsWith('B')) ? 'text-teal-700' : 'text-rose-600'}">${m ? m.gred : '-'}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function loadGradeSummary() {
+    const total = sData.length;
+    const container = document.getElementById('ltab-laporan');
+    if (!container) return;
+
+    let scores = sData.map(s => s.markahSediaAda ? Number(s.markahSediaAda.total) : null).filter(v => v !== null && !isNaN(v));
+    let count = scores.length;
+    let mean = count > 0 ? (scores.reduce((a, b) => a + b, 0) / count) : 0;
+    let variance = count > 0 ? (scores.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / count) : 0;
+    let sd = Math.sqrt(variance);
+    let minScore = count > 0 ? Math.min(...scores) : 0;
+    let maxScore = count > 0 ? Math.max(...scores) : 0;
+
+    container.innerHTML = `
+        <div class="academic-card p-6 mb-6 border-l-4 border-teal-800">
+            <h3 class="font-serif-title text-xl font-bold text-slate-800 mb-2">Analisis Taburan Gred MPU3421</h3>
+            <p class="text-xs text-slate-500 mb-6">Ringkasan statistik pentaksiran berterusan (100 markah).</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                    <div class="text-[10px] font-bold text-teal-800 uppercase">Jumlah Calon Dinilai</div>
+                    <div class="font-mono-score text-2xl font-bold text-teal-900 mt-1">${count} / ${total}</div>
+                </div>
+                <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="text-[10px] font-bold text-blue-800 uppercase">Purata Markah (Mean)</div>
+                    <div class="font-mono-score text-2xl font-bold text-blue-900 mt-1">${mean.toFixed(2)}%</div>
+                </div>
+                <div class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div class="text-[10px] font-bold text-purple-800 uppercase">Sisihan Piawai (SP)</div>
+                    <div class="font-mono-score text-2xl font-bold text-purple-900 mt-1">${sd.toFixed(2)}</div>
+                </div>
+                <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div class="text-[10px] font-bold text-amber-800 uppercase">Julat Markah (Min - Max)</div>
+                    <div class="font-mono-score text-2xl font-bold text-amber-900 mt-1">${minScore.toFixed(1)}% - ${maxScore.toFixed(1)}%</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/* ==================== INTERACTIVE PEER QUESTION BUILDER ==================== */
+async function loadPeerConfigUI() {
+    try {
+        const r = await fetch(`${API}?action=getPeerConfig`);
+        const o = await r.json();
+        if (o.status === 'success' && o.questions) {
+            currentPeerQuestions = o.questions;
+        }
+    } catch(e){}
+    renderPeerQuestionsBuilder();
+}
+
+function renderPeerQuestionsBuilder() {
+    const container = document.getElementById('peerQuestionsBuilder');
+    if (!container) return;
+    container.innerHTML = '';
+
+    currentPeerQuestions.forEach((q, idx) => {
+        const div = document.createElement('div');
+        div.className = 'p-4 bg-slate-50 border border-slate-200 rounded-lg flex flex-col gap-3 relative';
+        div.innerHTML = `
+            <div class="flex justify-between items-center">
+                <span class="font-bold text-xs text-indigo-900 uppercase">Soalan ${idx + 1} (${q.id.toUpperCase()})</span>
+                <button class="text-rose-600 hover:text-rose-800 text-xs font-bold" onclick="removePeerQuestionUI(${idx})"><i class="fas fa-trash me-1"></i> Padam</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label class="dim-label">Tajuk Soalan</label>
+                    <input type="text" value="${q.title || ''}" onchange="currentPeerQuestions[${idx}].title = this.value" class="w-full text-xs font-bold">
+                </div>
+                <div>
+                    <label class="dim-label">Label / Penerangan</label>
+                    <input type="text" value="${q.label || ''}" onchange="currentPeerQuestions[${idx}].label = this.value" class="w-full text-xs">
+                </div>
+                <div>
+                    <label class="dim-label">Dimensi Radar Chart</label>
+                    <input type="text" value="${q.dimension || ''}" onchange="currentPeerQuestions[${idx}].dimension = this.value" class="w-full text-xs font-bold">
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function addPeerQuestionUI() {
+    const nextId = 'q' + (currentPeerQuestions.length + 1);
+    currentPeerQuestions.push({ id: nextId, title: `Kriteria ${currentPeerQuestions.length + 1}`, label: 'Penerangan soalan baharu...', dimension: 'Atribut' });
+    renderPeerQuestionsBuilder();
+}
+
+function removePeerQuestionUI(idx) {
+    if (currentPeerQuestions.length <= 1) return showToast('Sekurang-kurangnya satu soalan diperlukan.', 'warn');
+    currentPeerQuestions.splice(idx, 1);
+    renderPeerQuestionsBuilder();
+}
+
+async function savePeerConfigUI() {
+    showToast('Mengunci & Menjana Header PEER_EVAL...', 'success');
+    try {
+        await fetch(API, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'savePeerConfig',
+                email: curLec,
+                questions: currentPeerQuestions
+            })
+        });
+        showToast('Tetapan Soalan Rakan Disimpan & Kunci PEER_EVAL Diberlakukan!');
+    } catch(e) {
+        showToast('Gagal menyimpan tetapan soalan rakan.', 'warn');
+    }
+}
+
+/* ==================== INTERACTIVE NESTED HPP BUILDER ==================== */
+async function loadHppConfigUI() {
+    try {
+        const r = await fetch(`${API}?action=getHppConfig`);
+        const o = await r.json();
+        if (o.status === 'success' && o.config) {
+            currentHppConfig = o.config;
+        }
+    } catch(e){}
+    renderHppConfigBuilder();
+}
+
+function renderHppConfigBuilder() {
+    const container = document.getElementById('hppConfigBuilder');
+    if (!container) return;
+    container.innerHTML = '';
+
+    currentHppConfig.forEach((tugasan, tIdx) => {
+        const tDiv = document.createElement('div');
+        tDiv.className = 'academic-card p-5 border-l-4 border-teal-600 bg-white shadow-sm mb-4';
+
+        let hppHTML = '';
+        tugasan.hppList.forEach((hpp, hIdx) => {
+            let subHTML = '';
+            hpp.subCriteria.forEach((sub, sIdx) => {
+                subHTML += `
+                    <div class="flex items-center gap-2 bg-white p-2 border rounded border-slate-200 text-xs">
+                        <input type="text" value="${sub.nama}" onchange="currentHppConfig[${tIdx}].hppList[${hIdx}].subCriteria[${sIdx}].nama = this.value" placeholder="Nama Sub-Kriteria" class="flex-1 font-bold">
+                        <input type="number" value="${sub.maxScore}" onchange="currentHppConfig[${tIdx}].hppList[${hIdx}].subCriteria[${sIdx}].maxScore = Number(this.value)" placeholder="Max" class="w-16 text-center font-mono-score">
+                        <input type="text" value="${sub.desc || ''}" onchange="currentHppConfig[${tIdx}].hppList[${hIdx}].subCriteria[${sIdx}].desc = this.value" placeholder="Penerangan" class="flex-1">
+                        <button onclick="removeSubUI(${tIdx}, ${hIdx}, ${sIdx})" class="text-rose-600 p-1"><i class="fas fa-times"></i></button>
+                    </div>
+                `;
+            });
+
+            hppHTML += `
+                <div class="p-4 bg-slate-50 border rounded-lg mb-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="flex items-center gap-2 flex-1">
+                            <input type="text" value="${hpp.kod}" onchange="currentHppConfig[${tIdx}].hppList[${hIdx}].kod = this.value" class="w-24 font-bold text-xs text-teal-800">
+                            <input type="text" value="${hpp.nama}" onchange="currentHppConfig[${tIdx}].hppList[${hIdx}].nama = this.value" class="flex-1 font-bold text-xs">
+                            <span class="text-xs text-slate-400">Max:</span>
+                            <input type="number" value="${hpp.maxScore}" onchange="currentHppConfig[${tIdx}].hppList[${hIdx}].maxScore = Number(this.value)" class="w-16 font-mono-score text-xs text-center font-bold">
+                        </div>
+                        <button onclick="removeHppUI(${tIdx}, ${hIdx})" class="text-rose-600 text-xs font-bold ms-3"><i class="fas fa-trash me-1"></i> Padam HPP</button>
+                    </div>
+                    <div class="pl-4 border-l-2 border-slate-300 space-y-2 mt-3">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase">Sub-Kriteria Breakdown</div>
+                        ${subHTML}
+                        <button onclick="addSubUI(${tIdx}, ${hIdx})" class="text-[10px] font-bold text-teal-700 uppercase mt-1"><i class="fas fa-plus me-1"></i> Tambah Sub-Kriteria</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        tDiv.innerHTML = `
+            <div class="flex justify-between items-center border-b pb-3 mb-3">
+                <div class="flex items-center gap-3 flex-1">
+                    <input type="text" value="${tugasan.nama}" onchange="currentHppConfig[${tIdx}].nama = this.value" class="font-serif-title font-bold text-lg text-slate-800 flex-1">
+                    <span class="text-xs font-bold text-slate-400">Wajaran %:</span>
+                    <input type="number" value="${tugasan.wajaran}" onchange="currentHppConfig[${tIdx}].wajaran = Number(this.value)" class="w-20 font-mono-score font-bold text-center text-xs">
+                </div>
+                <button onclick="removeTugasanUI(${tIdx})" class="text-rose-600 text-xs font-bold ms-4"><i class="fas fa-trash me-1"></i> Padam Tugasan</button>
+            </div>
+            <div class="space-y-3">
+                ${hppHTML}
+            </div>
+            <button onclick="addHppUI(${tIdx})" class="btn-outline py-1 px-3 text-[10px] rounded mt-2 text-teal-800 border-teal-200"><i class="fas fa-plus me-1"></i> Tambah HPP</button>
+        `;
+        container.appendChild(tDiv);
+    });
+}
+
+function addTugasanUI() {
+    currentHppConfig.push({
+        id: 'hpk' + (currentHppConfig.length + 1),
+        nama: `HPK ${currentHppConfig.length + 1}`,
+        wajaran: 20,
+        hppList: []
+    });
+    renderHppConfigBuilder();
+}
+
+function removeTugasanUI(tIdx) {
+    currentHppConfig.splice(tIdx, 1);
+    renderHppConfigBuilder();
+}
+
+function addHppUI(tIdx) {
+    currentHppConfig[tIdx].hppList.push({
+        id: 'hpp_' + Date.now(),
+        kod: 'HPP1',
+        nama: 'Komponen HPP Baharu',
+        maxScore: 10,
+        subCriteria: []
+    });
+    renderHppConfigBuilder();
+}
+
+function removeHppUI(tIdx, hIdx) {
+    currentHppConfig[tIdx].hppList.splice(hIdx, 1);
+    renderHppConfigBuilder();
+}
+
+function addSubUI(tIdx, hIdx) {
+    currentHppConfig[tIdx].hppList[hIdx].subCriteria.push({
+        id: 'sub_' + Date.now(),
+        nama: 'Sub-Kriteria Baharu',
+        maxScore: 5,
+        desc: 'Penerangan kriteria'
+    });
+    renderHppConfigBuilder();
+}
+
+function removeSubUI(tIdx, hIdx, sIdx) {
+    currentHppConfig[tIdx].hppList[hIdx].subCriteria.splice(sIdx, 1);
+    renderHppConfigBuilder();
+}
+
+async function saveHppConfigUI() {
+    showToast('Menyimpan Tetapan Kriteria HPP...', 'success');
+    try {
+        await fetch(API, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'saveHppConfig',
+                email: curLec,
+                config: currentHppConfig
+            })
+        });
+        showToast('Tetapan Kriteria HPP Berjaya Disimpan!');
+    } catch(e) {
+        showToast('Gagal menyimpan tetapan HPP.', 'warn');
+    }
+}
+
+function logout() { location.reload(); }
+</script>
+</body>
+</html>
